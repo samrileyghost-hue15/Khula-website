@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /privacy
+Disallow: /terms
+
+# Sitemap
+Sitemap: https://khulabynkm.co.za/sitemap.xml
