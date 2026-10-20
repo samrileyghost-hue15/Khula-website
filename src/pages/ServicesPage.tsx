@@ -1,17 +1,51 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowUpRight, Search } from 'lucide-react';
+import { ArrowUpRight, Search, RefreshCw } from 'lucide-react';
 import { SEOHead } from '../components/ui/SEOHead';
 import { Badge } from '../components/ui/Badge';
 import { SectionLabel } from '../components/ui/SectionLabel';
 import { EmptyState } from '../components/ui/EmptyState';
 import { Button } from '../components/ui/Button';
-import { services, SERVICE_CATEGORIES } from '../data/services';
+import { useServices } from '../hooks/useServices';
 import { priceLabel } from '../utils/format';
+import type { ServiceCategory } from '../types';
 
+const SERVICE_CATEGORIES: Array<'All' | ServiceCategory> = [
+  'All',
+  'Product & UX',
+  'Web & Digital',
+  'Brand & Creative',
+  'Strategy & Growth',
+  'Marketing & Performance',
+];
+
+// ── Skeleton ──────────────────────────────────────────────────────────────────
+function ServiceCardSkeleton() {
+  return (
+    <div className="p-6 border border-white/10 animate-pulse" aria-hidden="true">
+      <div className="flex items-start justify-between gap-3 mb-2">
+        <div className="h-4 bg-white/[0.06] rounded w-2/3" />
+        <div className="w-4 h-4 bg-white/[0.04] rounded" />
+      </div>
+      <div className="h-5 bg-white/[0.04] rounded w-1/3 mb-3" />
+      <div className="space-y-1.5 mb-4">
+        <div className="h-3 bg-white/[0.04] rounded w-full" />
+        <div className="h-3 bg-white/[0.04] rounded w-5/6" />
+        <div className="h-3 bg-white/[0.04] rounded w-4/5" />
+      </div>
+      <div className="pt-4 border-t border-white/10 flex items-center justify-between">
+        <div className="h-4 bg-white/[0.05] rounded w-20" />
+        <div className="h-5 bg-white/[0.04] rounded w-16" />
+      </div>
+    </div>
+  );
+}
+
+// ── Page ──────────────────────────────────────────────────────────────────────
 export function ServicesPage() {
   const [activeCategory, setActiveCategory] = useState<string>('All');
   const [query, setQuery] = useState('');
+  const { services, loading } = useServices();
 
   const filtered = services.filter((s) => {
     const matchesCategory = activeCategory === 'All' || s.category === activeCategory;
@@ -40,7 +74,6 @@ export function ServicesPage() {
             marketing. Every engagement is scoped to the business's actual needs — not a
             predefined package.
           </p>
-
           <div className="mt-6 p-4 bg-white/[0.03] border border-white/10 rounded inline-block">
             <p className="text-xs text-brand-grey">
               <strong className="text-brand-white/70">Pricing note:</strong> All prices shown are
@@ -55,31 +88,23 @@ export function ServicesPage() {
       <div className="sticky top-16 md:top-18 z-30 bg-brand-black/95 backdrop-blur-sm border-b border-white/10">
         <div className="container-content py-4">
           <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
-            {/* Category filters */}
             <div className="flex items-center gap-1.5 flex-wrap" role="group" aria-label="Filter by category">
               {SERVICE_CATEGORIES.map((cat) => (
                 <button
                   key={cat}
                   onClick={() => setActiveCategory(cat)}
-                  className={`px-3 py-1.5 text-xs font-medium rounded transition-all duration-200 ${
-                    activeCategory === cat
+                  className={`px-3 py-1.5 text-xs font-medium rounded transition-all duration-200 ${activeCategory === cat
                       ? 'bg-brand-green text-brand-black'
                       : 'bg-white/5 text-brand-grey hover:text-brand-white hover:bg-white/10'
-                  }`}
+                    }`}
                   aria-pressed={activeCategory === cat}
                 >
                   {cat}
                 </button>
               ))}
             </div>
-
-            {/* Search */}
             <div className="relative flex-shrink-0">
-              <Search
-                size={14}
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-brand-grey pointer-events-none"
-                aria-hidden="true"
-              />
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-brand-grey pointer-events-none" aria-hidden="true" />
               <input
                 type="search"
                 placeholder="Search services…"
@@ -94,21 +119,19 @@ export function ServicesPage() {
       </div>
 
       {/* Grid */}
-      <section className="section-y">
+      <section className="section-y" aria-live="polite" aria-busy={loading}>
         <div className="container-content">
-          {filtered.length === 0 ? (
+          {loading ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {Array.from({ length: 6 }).map((_, i) => <ServiceCardSkeleton key={i} />)}
+            </div>
+          ) : filtered.length === 0 ? (
             <EmptyState
               title="No services found"
               description="Try a different category or clear your search."
               action={
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    setActiveCategory('All');
-                    setQuery('');
-                  }}
-                >
+                <Button variant="ghost" size="sm" onClick={() => { setActiveCategory('All'); setQuery(''); }}>
+                  <RefreshCw size={13} />
                   Clear filters
                 </Button>
               }
@@ -130,15 +153,9 @@ export function ServicesPage() {
                       <h2 className="font-heading text-base font-600 text-brand-white group-hover:text-brand-green transition-colors leading-snug">
                         {service.name}
                       </h2>
-                      <ArrowUpRight
-                        size={14}
-                        className="text-white/20 group-hover:text-brand-green transition-colors flex-shrink-0 mt-0.5"
-                        aria-hidden="true"
-                      />
+                      <ArrowUpRight size={14} className="text-white/20 group-hover:text-brand-green transition-colors flex-shrink-0 mt-0.5" aria-hidden="true" />
                     </div>
-                    <Badge variant="default" className="mb-3">
-                      {service.category}
-                    </Badge>
+                    <Badge variant="default" className="mb-3">{service.category}</Badge>
                     <p className="text-sm text-white/50 leading-relaxed mb-4 line-clamp-3">
                       {service.shortDescription}
                     </p>

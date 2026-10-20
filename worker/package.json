@@ -1,0 +1,18 @@
+{
+  "name": "khula-portfolio-api-worker",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "build": "tsc"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "2.49.4"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20241127.0",
+    "typescript": "^5.6.3",
+    "wrangler": "^3.78.10"
+  }
+}

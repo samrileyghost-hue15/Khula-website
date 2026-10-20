@@ -5,9 +5,9 @@ import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
 import { Card } from '../components/ui/Card';
 import { SectionLabel } from '../components/ui/SectionLabel';
-import { projects } from '../data/projects';
-import { services } from '../data/services';
-import { packages } from '../data/packages';
+import { useProjects } from '../hooks/useProjects';
+import { useServices } from '../hooks/useServices';
+import { usePackages } from '../hooks/usePackages';
 import { priceLabel } from '../utils/format';
 
 // ── Hero ──────────────────────────────────────────────────────────────────────
@@ -139,7 +139,25 @@ function PositioningSection() {
 }
 
 // ── Selected Work ──────────────────────────────────────────────────────────────
+
+function FeaturedCardSkeleton() {
+  return (
+    <div className="block border border-white/10 overflow-hidden animate-pulse" aria-hidden="true">
+      <div className="h-52 md:h-60 bg-white/[0.04]" />
+      <div className="p-6 space-y-3">
+        <div className="h-4 bg-white/[0.06] rounded w-3/5" />
+        <div className="h-3 bg-white/[0.04] rounded w-2/5" />
+        <div className="flex gap-2 pt-1">
+          <div className="h-5 w-20 bg-white/[0.04] rounded" />
+          <div className="h-5 w-16 bg-white/[0.04] rounded" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function SelectedWorkSection() {
+  const { projects, loading } = useProjects();
   const featured = projects.slice(0, 4);
 
   return (
@@ -158,68 +176,99 @@ function SelectedWorkSection() {
           </Button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {featured.map((project) => (
-            <Link
-              key={project.slug}
-              to={`/work/${project.slug}`}
-              className="group block relative overflow-hidden border border-white/10 hover:border-white/25 transition-all duration-300"
-              aria-label={`View case study: ${project.title}`}
-            >
-              {/* Project visual */}
-              <div
-                className={`h-52 md:h-60 bg-gradient-to-br ${project.coverBg} flex items-end p-6 relative overflow-hidden`}
+        <div
+          className="grid grid-cols-1 md:grid-cols-2 gap-6"
+          aria-live="polite"
+          aria-busy={loading}
+        >
+          {loading
+            ? Array.from({ length: 4 }).map((_, i) => <FeaturedCardSkeleton key={i} />)
+            : featured.map((project) => (
+              <Link
+                key={project.slug}
+                to={`/work/${project.slug}`}
+                className="group block relative overflow-hidden border border-white/10 hover:border-white/30 transition-all duration-300"
+                aria-label={`View case study: ${project.title}`}
               >
-                {/* Abstract composition */}
+                {/* Cover */}
                 <div
-                  className="absolute inset-0 flex items-center justify-center opacity-10"
-                  aria-hidden="true"
+                  className={`h-52 md:h-60 bg-gradient-to-br ${project.coverBg} relative overflow-hidden`}
                 >
+                  {/* Concentric circles */}
                   <div
-                    className="w-64 h-64 rounded-full border"
-                    style={{ borderColor: project.accentColor }}
-                  />
-                  <div
-                    className="absolute w-40 h-40 rounded-full border"
-                    style={{ borderColor: project.accentColor, opacity: 0.6 }}
-                  />
-                </div>
-                <div
-                  className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 font-heading text-[5rem] font-700 opacity-5 whitespace-nowrap"
-                  aria-hidden="true"
-                  style={{ color: project.accentColor }}
-                >
-                  {project.title}
-                </div>
-                {/* Maturity badge */}
-                <Badge variant="outline" className="relative z-10">
-                  {project.maturity}
-                </Badge>
-              </div>
+                    className="absolute inset-0 flex items-center justify-center pointer-events-none"
+                    aria-hidden="true"
+                  >
+                    {[256, 168, 80].map((size) => (
+                      <div
+                        key={size}
+                        className="absolute rounded-full border opacity-10"
+                        style={{ width: size, height: size, borderColor: project.accentColor }}
+                      />
+                    ))}
+                  </div>
 
-              {/* Project info */}
-              <div className="p-6">
-                <div className="flex items-start justify-between gap-4 mb-2">
-                  <h3 className="font-heading text-lg font-600 text-brand-white group-hover:text-brand-green transition-colors">
+                  {/* Ghost watermark */}
+                  <div
+                    className="absolute inset-0 flex items-center justify-center font-heading text-[5rem] font-700 opacity-[0.04] whitespace-nowrap pointer-events-none select-none"
+                    aria-hidden="true"
+                    style={{ color: project.accentColor }}
+                  >
                     {project.title}
-                  </h3>
-                  <ArrowUpRight
-                    size={16}
-                    className="text-brand-grey group-hover:text-brand-green transition-colors flex-shrink-0 mt-0.5"
+                  </div>
+
+                  {/* Hover overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+
+                  {/* Accent bottom bar */}
+                  <div
+                    className="absolute bottom-0 left-0 right-0 h-0.5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                    style={{ backgroundColor: project.accentColor }}
                     aria-hidden="true"
                   />
-                </div>
-                <p className="text-sm text-brand-grey mb-3">{project.subtitle}</p>
-                <div className="flex flex-wrap gap-1.5">
-                  {project.categories.slice(0, 2).map((cat) => (
-                    <Badge key={cat} variant="default">
-                      {cat}
+
+                  {/* Maturity badge */}
+                  <div className="absolute bottom-4 left-4">
+                    <Badge variant="outline" className="relative z-10">
+                      {project.maturity}
                     </Badge>
-                  ))}
+                  </div>
+
+                  {/* Arrow */}
+                  <div className="absolute top-4 right-4">
+                    <div className="w-7 h-7 rounded-full border border-white/20 flex items-center justify-center bg-brand-black/40 backdrop-blur-sm group-hover:border-white/50 transition-all duration-200">
+                      <ArrowUpRight
+                        size={13}
+                        className="text-white/40 group-hover:text-brand-white transition-colors"
+                        aria-hidden="true"
+                      />
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </Link>
-          ))}
+
+                {/* Info */}
+                <div className="p-6">
+                  <div className="flex items-start justify-between gap-3 mb-1">
+                    <h3 className="font-heading text-lg font-600 text-brand-white group-hover:text-brand-green transition-colors leading-snug">
+                      {project.title}
+                    </h3>
+                    <span
+                      className="w-2 h-2 rounded-full flex-shrink-0 mt-1.5 opacity-50 group-hover:opacity-100 transition-opacity"
+                      style={{ backgroundColor: project.accentColor }}
+                      aria-hidden="true"
+                    />
+                  </div>
+                  <p className="text-sm text-brand-grey mb-3">{project.subtitle}</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {project.categories.slice(0, 2).map((cat) => (
+                      <Badge key={cat} variant="default">
+                        {cat}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              </Link>
+            ))}
         </div>
       </div>
     </section>
@@ -228,6 +277,7 @@ function SelectedWorkSection() {
 
 // ── Services Overview ──────────────────────────────────────────────────────────
 function ServicesSection() {
+  const { services, loading } = useServices();
   const featured = services.slice(0, 6);
 
   return (
@@ -246,43 +296,49 @@ function ServicesSection() {
           </Button>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
-          {featured.map((service) => (
-            <Link
-              key={service.slug}
-              to={`/services/${service.slug}`}
-              className="group block p-6 border border-white/10 hover:border-white/25 hover:bg-white/[0.03] transition-all duration-200"
-              aria-label={`Learn about ${service.name}`}
-            >
-              <div className="flex items-start justify-between gap-3 mb-3">
-                <h3 className="font-heading text-base font-600 text-brand-white group-hover:text-brand-green transition-colors leading-snug">
-                  {service.name}
-                </h3>
-                <ArrowUpRight
-                  size={14}
-                  className="text-white/20 group-hover:text-brand-green transition-colors flex-shrink-0 mt-0.5"
-                  aria-hidden="true"
-                />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8" aria-live="polite" aria-busy={loading}>
+          {loading
+            ? Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="p-6 border border-white/10 animate-pulse" aria-hidden="true">
+                <div className="h-4 bg-white/[0.06] rounded w-2/3 mb-3" />
+                <div className="h-3 bg-white/[0.04] rounded w-full mb-1.5" />
+                <div className="h-3 bg-white/[0.04] rounded w-5/6 mb-4" />
+                <div className="flex items-center justify-between pt-4 border-t border-white/10">
+                  <div className="h-3 bg-white/[0.05] rounded w-16" />
+                  <div className="h-5 bg-white/[0.04] rounded w-20" />
+                </div>
               </div>
-              <p className="text-sm text-white/50 leading-relaxed mb-4 line-clamp-2">
-                {service.shortDescription}
-              </p>
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-brand-green font-medium">
-                  {priceLabel(service.startingPrice)}
-                  {service.billingType === 'monthly' ? '/mo' : ''}
-                </span>
-                <Badge variant="default">{service.category}</Badge>
-              </div>
-            </Link>
-          ))}
+            ))
+            : featured.map((service) => (
+              <Link
+                key={service.slug}
+                to={`/services/${service.slug}`}
+                className="group block p-6 border border-white/10 hover:border-white/25 hover:bg-white/[0.03] transition-all duration-200"
+                aria-label={`Learn about ${service.name}`}
+              >
+                <div className="flex items-start justify-between gap-3 mb-3">
+                  <h3 className="font-heading text-base font-600 text-brand-white group-hover:text-brand-green transition-colors leading-snug">
+                    {service.name}
+                  </h3>
+                  <ArrowUpRight size={14} className="text-white/20 group-hover:text-brand-green transition-colors flex-shrink-0 mt-0.5" aria-hidden="true" />
+                </div>
+                <p className="text-sm text-white/50 leading-relaxed mb-4 line-clamp-2">
+                  {service.shortDescription}
+                </p>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-brand-green font-medium">
+                    {priceLabel(service.startingPrice)}
+                    {service.billingType === 'monthly' ? '/mo' : ''}
+                  </span>
+                  <Badge variant="default">{service.category}</Badge>
+                </div>
+              </Link>
+            ))}
         </div>
 
         <p className="text-sm text-brand-grey text-center">
           Displayed prices are starting estimates.{' '}
-          <Link to="/contact" className="text-brand-green hover:underline">
-            Get a tailored quote.
-          </Link>
+          <Link to="/contact" className="text-brand-green hover:underline">Get a tailored quote.</Link>
         </p>
       </div>
     </section>
@@ -435,6 +491,7 @@ function FounderSection() {
 
 // ── Packages ──────────────────────────────────────────────────────────────────
 function PackagesSection() {
+  const { packages, loading } = usePackages();
   const featured = packages.slice(0, 3);
 
   return (
@@ -451,42 +508,46 @@ function PackagesSection() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-          {featured.map((pkg) => (
-            <Card
-              key={pkg.slug}
-              className={`p-8 relative ${pkg.popular ? 'border-brand-green/40 bg-brand-green/[0.03]' : ''
-                }`}
-            >
-              {pkg.popular && (
-                <div className="absolute -top-px left-0 right-0 h-px bg-brand-green" aria-hidden="true" />
-              )}
-              {pkg.popular && (
-                <Badge variant="green" className="mb-4">
-                  Most Popular
-                </Badge>
-              )}
-              <div className="font-heading text-xl font-600 text-brand-white mb-1">{pkg.name}</div>
-              <p className="text-sm text-brand-grey mb-5 leading-relaxed">{pkg.tagline}</p>
-              <div className="mb-6">
-                <span className="font-heading text-2xl font-600 text-brand-white">
-                  {priceLabel(pkg.startingPrice)}
-                </span>
-                {pkg.billingType === 'monthly' && (
-                  <span className="text-sm text-brand-grey ml-1">/month</span>
-                )}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8" aria-live="polite" aria-busy={loading}>
+          {loading
+            ? Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="p-8 border border-white/10 animate-pulse" aria-hidden="true">
+                <div className="h-5 bg-white/[0.06] rounded w-1/3 mb-2" />
+                <div className="h-3 bg-white/[0.04] rounded w-3/4 mb-5" />
+                <div className="h-8 bg-white/[0.05] rounded w-1/2 mb-6" />
+                <div className="h-8 bg-white/[0.04] rounded" />
               </div>
-              <Button
-                as="link"
-                to={`/packages#${pkg.slug}`}
-                variant={pkg.popular ? 'primary' : 'ghost'}
-                size="sm"
-                fullWidth
+            ))
+            : featured.map((pkg) => (
+              <Card
+                key={pkg.slug}
+                className={`p-8 relative ${pkg.popular ? 'border-brand-green/40 bg-brand-green/[0.03]' : ''}`}
               >
-                {pkg.cta}
-              </Button>
-            </Card>
-          ))}
+                {pkg.popular && (
+                  <div className="absolute -top-px left-0 right-0 h-px bg-brand-green" aria-hidden="true" />
+                )}
+                {pkg.popular && <Badge variant="green" className="mb-4">Most Popular</Badge>}
+                <div className="font-heading text-xl font-600 text-brand-white mb-1">{pkg.name}</div>
+                <p className="text-sm text-brand-grey mb-5 leading-relaxed">{pkg.tagline}</p>
+                <div className="mb-6">
+                  <span className="font-heading text-2xl font-600 text-brand-white">
+                    {priceLabel(pkg.startingPrice)}
+                  </span>
+                  {pkg.billingType === 'monthly' && (
+                    <span className="text-sm text-brand-grey ml-1">/month</span>
+                  )}
+                </div>
+                <Button
+                  as="link"
+                  to={`/packages#${pkg.slug}`}
+                  variant={pkg.popular ? 'primary' : 'ghost'}
+                  size="sm"
+                  fullWidth
+                >
+                  {pkg.cta}
+                </Button>
+              </Card>
+            ))}
         </div>
 
         <div className="text-center">

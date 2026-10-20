@@ -4,30 +4,77 @@ import { SEOHead } from '../../components/ui/SEOHead';
 import { Badge } from '../../components/ui/Badge';
 import { Breadcrumb } from '../../components/ui/Breadcrumb';
 import { Button } from '../../components/ui/Button';
-import { getArticleBySlug, getRelatedArticles } from '../../data/articles';
+import { useArticle, useArticles } from '../../hooks/useArticles';
 import { formatDate } from '../../utils/format';
 import type { ArticleSection } from '../../types';
 
+// ── Skeleton ──────────────────────────────────────────────────────────────────
+function ArticleSkeleton() {
+  return (
+    <div className="animate-pulse" aria-hidden="true">
+      <div className="border-b border-white/10 py-4">
+        <div className="container-content h-4 bg-white/[0.04] rounded w-56" />
+      </div>
+      <div className="section-y border-b border-white/10">
+        <div className="container-content max-w-3xl space-y-4">
+          <div className="flex gap-3">
+            <div className="h-6 bg-white/[0.05] rounded w-24" />
+            <div className="h-6 bg-white/[0.04] rounded w-16" />
+          </div>
+          <div className="h-9 bg-white/[0.06] rounded w-3/4" />
+          <div className="h-9 bg-white/[0.06] rounded w-1/2" />
+          <div className="space-y-2 pt-2">
+            <div className="h-4 bg-white/[0.04] rounded w-full" />
+            <div className="h-4 bg-white/[0.04] rounded w-5/6" />
+          </div>
+        </div>
+      </div>
+      <div className="section-y">
+        <div className="container-content max-w-3xl space-y-6">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="space-y-2">
+              <div className="h-5 bg-white/[0.05] rounded w-1/3" />
+              <div className="h-3 bg-white/[0.04] rounded w-full" />
+              <div className="h-3 bg-white/[0.04] rounded w-5/6" />
+              <div className="h-3 bg-white/[0.04] rounded w-4/5" />
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Page ──────────────────────────────────────────────────────────────────────
 export function ArticlePage() {
   const { slug } = useParams<{ slug: string }>();
-  const article = slug ? getArticleBySlug(slug) : undefined;
+  const { article, loading } = useArticle(slug);
+  const { articles: allArticles } = useArticles();
+
+  const seoTitle = article?.title ?? (loading ? undefined : 'Article Not Found');
+  const seoDesc = article?.intro ?? undefined;
+  const seoCanonical = article ? `/insights/${article.slug}` : undefined;
+
+  if (loading) return (
+    <>
+      <SEOHead title={seoTitle} description={seoDesc} canonical={seoCanonical} />
+      <ArticleSkeleton />
+    </>
+  );
 
   if (!article) {
     return (
       <div className="section-y container-content text-center">
         <SEOHead title="Article Not Found" noIndex />
         <h1 className="font-heading text-display-sm text-brand-white mb-4">Article Not Found</h1>
-        <p className="text-brand-grey mb-6">
-          This article does not exist or has been moved.
-        </p>
-        <Button as="link" to="/insights" variant="primary" size="md">
-          View All Insights
-        </Button>
+        <p className="text-brand-grey mb-6">This article does not exist or has been moved.</p>
+        <Button as="link" to="/insights" variant="primary" size="md">View All Insights</Button>
       </div>
     );
   }
 
-  const related = getRelatedArticles(article.slug, 3);
+  // Related articles from live data (exclude current)
+  const related = allArticles.filter((a) => a.slug !== article.slug).slice(0, 3);
 
   return (
     <>
@@ -40,12 +87,7 @@ export function ArticlePage() {
       {/* Breadcrumb */}
       <div className="border-b border-white/10 py-4">
         <div className="container-content">
-          <Breadcrumb
-            items={[
-              { label: 'Insights', href: '/insights' },
-              { label: article.title },
-            ]}
-          />
+          <Breadcrumb items={[{ label: 'Insights', href: '/insights' }, { label: article.title }]} />
         </div>
       </div>
 
@@ -75,16 +117,12 @@ export function ArticlePage() {
                   </h2>
                 )}
                 {section.paragraphs.map((para, j) => (
-                  <p key={j} className="text-white/70 text-base leading-relaxed mb-4">
-                    {para}
-                  </p>
+                  <p key={j} className="text-white/70 text-base leading-relaxed mb-4">{para}</p>
                 ))}
                 {section.bullets && section.bullets.length > 0 && (
                   <ul className="space-y-2 mb-4 border-l-2 border-brand-green/30 pl-5">
                     {section.bullets.map((bullet, k) => (
-                      <li key={k} className="text-white/60 text-sm leading-relaxed">
-                        {bullet}
-                      </li>
+                      <li key={k} className="text-white/60 text-sm leading-relaxed">{bullet}</li>
                     ))}
                   </ul>
                 )}
@@ -99,9 +137,7 @@ export function ArticlePage() {
                 NM
               </div>
               <div>
-                <div className="text-sm font-medium text-brand-white mb-0.5">
-                  Nkululeko Malaza
-                </div>
+                <div className="text-sm font-medium text-brand-white mb-0.5">Nkululeko Malaza</div>
                 <div className="text-xs text-brand-grey mb-2">Founder &amp; Product Designer, KHULA</div>
                 <p className="text-xs text-white/50 leading-relaxed">
                   Nkululeko writes on product design, UX strategy, brand identity and digital
@@ -126,9 +162,7 @@ export function ArticlePage() {
                   className="group block border border-white/10 hover:border-white/25 hover:bg-white/[0.02] transition-all duration-200 p-5"
                   aria-label={`Read: ${a.title}`}
                 >
-                  <Badge variant="default" className="mb-3">
-                    {a.category}
-                  </Badge>
+                  <Badge variant="default" className="mb-3">{a.category}</Badge>
                   <h3 className="font-heading text-sm font-600 text-brand-white group-hover:text-brand-green transition-colors leading-snug mb-2">
                     {a.title}
                   </h3>

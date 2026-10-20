@@ -86,17 +86,38 @@ export function ContactPage() {
 
   const onSubmit = async (data: EnquiryFormData) => {
     setSubmitStatus('loading');
-    // Simulate submission — no backend configured
-    // To connect a real backend: implement POST to /api/enquiry with server-side validation
-    await new Promise((r) => setTimeout(r, 1500));
+    try {
+      const res = await fetch('/api/enquiries', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          full_name: data.fullName.trim(),
+          business: data.business.trim(),
+          email: data.email.toLowerCase().trim(),
+          phone: data.phone?.trim() || null,
+          service_slug: data.serviceSlug,
+          budget_range: data.budgetRange,
+          timeframe: data.timeframe,
+          description: data.description.trim(),
+          consent: data.consent,
+        }),
+      });
 
-    // In production with Supabase:
-    // const { error } = await supabase.from('enquiries').insert({ ...data, created_at: new Date() })
-    // if (error) { setSubmitStatus('error'); return; }
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        const msg = (body as { error?: string }).error ?? `HTTP ${res.status}`;
+        // 429 = rate limit; surface a friendlier message
+        if (res.status === 429) {
+          throw new Error('You have already submitted an enquiry recently. Please wait before trying again.');
+        }
+        throw new Error(msg);
+      }
 
-    // Development fallback: log to console and show confirmation
-    console.info('[KHULA Enquiry — development fallback]', data);
-    setSubmitStatus('success');
+      setSubmitStatus('success');
+    } catch (err) {
+      console.error('[ContactPage] enquiry submission failed:', err);
+      setSubmitStatus('error');
+    }
   };
 
   const selectedService = serviceOptions.find((s) => s.value === values.serviceSlug);
@@ -166,8 +187,8 @@ export function ContactPage() {
                       <label
                         key={option.value}
                         className={`flex items-start gap-3 p-4 border cursor-pointer transition-all duration-150 ${values.serviceSlug === option.value
-                            ? 'border-brand-green bg-brand-green/[0.05] text-brand-white'
-                            : 'border-white/10 hover:border-white/25 text-white/70 hover:text-white/90'
+                          ? 'border-brand-green bg-brand-green/[0.05] text-brand-white'
+                          : 'border-white/10 hover:border-white/25 text-white/70 hover:text-white/90'
                           }`}
                       >
                         <input
@@ -179,8 +200,8 @@ export function ContactPage() {
                         />
                         <span
                           className={`w-4 h-4 rounded-full border-2 flex-shrink-0 mt-0.5 transition-colors ${values.serviceSlug === option.value
-                              ? 'border-brand-green bg-brand-green'
-                              : 'border-white/30'
+                            ? 'border-brand-green bg-brand-green'
+                            : 'border-white/30'
                             }`}
                           aria-hidden="true"
                         />
@@ -243,8 +264,8 @@ export function ContactPage() {
                           <label
                             key={option.value}
                             className={`flex items-center gap-3 p-3 border cursor-pointer transition-all ${values.budgetRange === option.value
-                                ? 'border-brand-green bg-brand-green/[0.05]'
-                                : 'border-white/10 hover:border-white/20'
+                              ? 'border-brand-green bg-brand-green/[0.05]'
+                              : 'border-white/10 hover:border-white/20'
                               }`}
                           >
                             <input
@@ -256,8 +277,8 @@ export function ContactPage() {
                             />
                             <span
                               className={`w-3.5 h-3.5 rounded-full border-2 flex-shrink-0 ${values.budgetRange === option.value
-                                  ? 'border-brand-green bg-brand-green'
-                                  : 'border-white/30'
+                                ? 'border-brand-green bg-brand-green'
+                                : 'border-white/30'
                                 }`}
                               aria-hidden="true"
                             />
@@ -279,8 +300,8 @@ export function ContactPage() {
                           <label
                             key={option.value}
                             className={`flex items-center gap-3 p-3 border cursor-pointer transition-all ${values.timeframe === option.value
-                                ? 'border-brand-green bg-brand-green/[0.05]'
-                                : 'border-white/10 hover:border-white/20'
+                              ? 'border-brand-green bg-brand-green/[0.05]'
+                              : 'border-white/10 hover:border-white/20'
                               }`}
                           >
                             <input
@@ -292,8 +313,8 @@ export function ContactPage() {
                             />
                             <span
                               className={`w-3.5 h-3.5 rounded-full border-2 flex-shrink-0 ${values.timeframe === option.value
-                                  ? 'border-brand-green bg-brand-green'
-                                  : 'border-white/30'
+                                ? 'border-brand-green bg-brand-green'
+                                : 'border-white/30'
                                 }`}
                               aria-hidden="true"
                             />
@@ -389,8 +410,8 @@ export function ContactPage() {
                       />
                       <span
                         className={`w-5 h-5 border flex-shrink-0 mt-0.5 flex items-center justify-center transition-colors ${values.consent
-                            ? 'border-brand-green bg-brand-green'
-                            : 'border-white/30 group-hover:border-white/50'
+                          ? 'border-brand-green bg-brand-green'
+                          : 'border-white/30 group-hover:border-white/50'
                           }`}
                         aria-hidden="true"
                       >
@@ -427,16 +448,6 @@ export function ContactPage() {
                     <ReviewRow label="Business" value={values.business} />
                     <ReviewRow label="Email" value={values.email} />
                     {values.phone && <ReviewRow label="Phone" value={values.phone} />}
-                  </div>
-
-                  <div className="bg-white/[0.02] border border-white/10 p-4 mb-6">
-                    <p className="text-xs text-brand-grey/70 leading-relaxed">
-                      <strong className="text-brand-grey">Development note:</strong> This form
-                      currently logs your enquiry to the console. To connect real email delivery or
-                      database persistence, configure the VITE_SUPABASE_URL and
-                      VITE_SUPABASE_ANON_KEY environment variables and implement the server-side
-                      enquiry handler.
-                    </p>
                   </div>
 
                   {submitStatus === 'error' && (
@@ -585,10 +596,6 @@ function SuccessState({ name }: { name: string }) {
       <p className="text-white/50 leading-relaxed mb-8">
         KHULA will review your project brief and respond to the email address you provided. In the
         meantime, feel free to explore the work and services.
-      </p>
-      <p className="text-xs text-brand-grey/50 mb-8">
-        Note: This is a development build. Your enquiry was logged to the browser console. Real
-        email delivery requires backend configuration.
       </p>
       <div className="flex flex-col sm:flex-row gap-3 justify-center">
         <Button as="link" to="/work" variant="primary" size="md">

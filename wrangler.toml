@@ -1,0 +1,23 @@
+# =============================================================================
+# Cloudflare Worker — KHULA Website
+# Deploys:
+#   - worker/src/index.ts  as the Worker (handles /api/* routes)
+#   - ./dist/              as static assets served for all other routes
+#
+# Deploy:  npm run deploy
+# Secrets: wrangler secret put SUPABASE_URL
+#          wrangler secret put SUPABASE_SERVICE_ROLE_KEY
+#          wrangler secret put SUPABASE_ANON_KEY
+# =============================================================================
+
+name = "khula-portfolio-api"
+main = "worker/src/index.ts"
+compatibility_date = "2024-09-23"
+compatibility_flags = ["nodejs_compat"]
+
+[assets]
+directory = "./dist"
+not_found_handling = "single-page-application"
+
+[observability]
+enabled = true

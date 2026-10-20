@@ -5,12 +5,72 @@ import { Badge } from '../../components/ui/Badge';
 import { Breadcrumb } from '../../components/ui/Breadcrumb';
 import { Button } from '../../components/ui/Button';
 import { SectionLabel } from '../../components/ui/SectionLabel';
-import { getProjectBySlug, getRelatedProjects } from '../../data/projects';
+import { useProject, useProjects } from '../../hooks/useProjects';
+
+// ─── Skeleton ─────────────────────────────────────────────────────────────────
+
+function CaseStudySkeleton() {
+  return (
+    <div className="animate-pulse" aria-hidden="true">
+      {/* Cover */}
+      <div className="h-64 md:h-80 bg-white/[0.04]" />
+      {/* Header */}
+      <div className="border-b border-white/10 py-12">
+        <div className="container-content space-y-3 max-w-3xl">
+          <div className="h-8 bg-white/[0.06] rounded w-1/2" />
+          <div className="h-4 bg-white/[0.04] rounded w-1/3" />
+          <div className="h-4 bg-white/[0.04] rounded w-3/4" />
+        </div>
+      </div>
+      {/* Body */}
+      <div className="container-content py-16">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-12 lg:gap-16">
+          <div className="lg:col-span-2 space-y-8">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="space-y-2">
+                <div className="h-3 bg-white/[0.05] rounded w-1/4" />
+                <div className="h-3 bg-white/[0.04] rounded w-full" />
+                <div className="h-3 bg-white/[0.04] rounded w-5/6" />
+                <div className="h-3 bg-white/[0.04] rounded w-4/5" />
+              </div>
+            ))}
+          </div>
+          <div className="space-y-4">
+            <div className="h-32 bg-white/[0.04] rounded" />
+            <div className="h-24 bg-white/[0.04] rounded" />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
 
 export function CaseStudyPage() {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
-  const project = slug ? getProjectBySlug(slug) : undefined;
+  const { project, loading } = useProject(slug);
+  const { projects: allProjects } = useProjects();
+
+  // Derive related from the full live list
+  const related = project
+    ? allProjects.filter((p) => p.slug !== project.slug).slice(0, 2)
+    : [];
+
+  // Always render SEO head — use live data when available, fallback while loading
+  const seoTitle = project?.title ?? (loading ? undefined : 'Project Not Found');
+  const seoDesc = project?.tagline ?? undefined;
+  const seoCanonical = project ? `/work/${project.slug}` : undefined;
+
+  if (loading) {
+    return (
+      <>
+        <SEOHead title={seoTitle} description={seoDesc} canonical={seoCanonical} />
+        <CaseStudySkeleton />
+      </>
+    );
+  }
 
   if (!project) {
     return (
@@ -24,8 +84,6 @@ export function CaseStudyPage() {
       </div>
     );
   }
-
-  const related = getRelatedProjects(project.slug, 2);
 
   return (
     <>
