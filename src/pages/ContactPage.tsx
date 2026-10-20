@@ -8,6 +8,7 @@ import { SEOHead } from '../components/ui/SEOHead';
 import { Button } from '../components/ui/Button';
 import { SectionLabel } from '../components/ui/SectionLabel';
 import { serviceOptions, budgetOptions, timeframeOptions } from '../data/enquiry';
+import { supabase } from '../lib/supabase';
 import type { EnquiryFormData } from '../types';
 
 // ── Schema ────────────────────────────────────────────────────────────────────
@@ -87,35 +88,25 @@ export function ContactPage() {
   const onSubmit = async (data: EnquiryFormData) => {
     setSubmitStatus('loading');
     try {
-      const res = await fetch('/api/enquiries', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          full_name: data.fullName.trim(),
-          business: data.business.trim(),
-          email: data.email.toLowerCase().trim(),
-          phone: data.phone?.trim() || null,
-          service_slug: data.serviceSlug,
-          budget_range: data.budgetRange,
-          timeframe: data.timeframe,
-          description: data.description.trim(),
-          consent: data.consent,
-        }),
+      const { error } = await supabase.from('enquiries').insert({
+        full_name: data.fullName.trim(),
+        business: data.business.trim(),
+        email: data.email.toLowerCase().trim(),
+        phone: data.phone?.trim() || null,
+        service_slug: data.serviceSlug,
+        budget_range: data.budgetRange,
+        timeframe: data.timeframe,
+        description: data.description.trim(),
       });
 
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        const msg = (body as { error?: string }).error ?? `HTTP ${res.status}`;
-        // 429 = rate limit; surface a friendlier message
-        if (res.status === 429) {
-          throw new Error('You have already submitted an enquiry recently. Please wait before trying again.');
-        }
-        throw new Error(msg);
+      if (error) {
+        console.error('[KHULA] Enquiry submission error:', error.message);
+        throw new Error(error.message);
       }
 
       setSubmitStatus('success');
     } catch (err) {
-      console.error('[ContactPage] enquiry submission failed:', err);
+      console.error('[KHULA] enquiry submission failed:', err);
       setSubmitStatus('error');
     }
   };
